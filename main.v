@@ -27,34 +27,6 @@ fn (app App) draw_board() {
 	app.gg.draw_image(0.0, 0.0, f32(app.board.width), f32(app.board.height), app.board)
 }
 
-// fn (app App) draw_pieces() {
-// 	mut x := app.board.width / f32(8.0) / f32(2.0) - (app.black_bishop.width / f32(2.0))
-// 	y := app.board.height / f32(8.0) / f32(2.0) - (app.black_bishop.height / f32(2.0))
-// 	app.gg.draw_image(x, y, f32(app.black_rook.width), f32(app.black_rook.height), app.black_rook)
-
-// 	x += f32(f32(app.board.width) / 8.0)
-// 	app.gg.draw_image(x, y, f32(app.black_knight.width), f32(app.black_knight.height), app.black_knight)
-
-// 	x += f32(f32(app.board.width) / 8.0)
-// 	app.gg.draw_image(x, y, f32(app.black_bishop.width), f32(app.black_bishop.height), app.black_bishop)
-
-// 	x += f32(f32(app.board.width) / 8.0)
-// 	app.gg.draw_image(x, y, f32(app.black_queen.width), f32(app.black_queen.height), app.black_queen)
-
-// 	x += f32(f32(app.board.width) / 8.0)
-// 	app.gg.draw_image(x, y, f32(app.black_king.width), f32(app.black_king.height), app.black_king)
-
-// 	x += f32(f32(app.board.width) / 8.0)
-// 	app.gg.draw_image(x, y, f32(app.black_bishop.width), f32(app.black_bishop.height), app.black_bishop)
-
-// 	x += f32(f32(app.board.width) / 8.0)
-// 	app.gg.draw_image(x, y, f32(app.black_knight.width), f32(app.black_knight.height), app.black_king)
-
-// 	x += f32(f32(app.board.width) / 8.0)
-// 	app.gg.draw_image(x, y, f32(app.black_rook.width), f32(app.black_rook.height), app.black_rook)
-
-// }
-
 fn (app App) place_piece_at_coordinate(piece gg.Image, x int, y int) {
     square_width := f32(app.board.width) / 8.0
     square_height := f32(app.board.height) / 8.0
@@ -95,6 +67,26 @@ fn (app App) draw_pieces() {
 	}
 }
 
+fn click(x f32, y f32, button gg.MouseButton, mut app App) {
+    board_width := app.board.width
+    board_height := app.board.height
+
+    // Check if the click is within the chessboard bounds
+    if x < 0.0 || x > f32(board_width) || y < 0.0 || y > f32(board_height) {
+        return
+    }
+
+    // Calculate the square indices based on the clicked coordinates
+    square_size_x := f32(board_width) / 8.0
+    square_size_y := f32(board_height) / 8.0
+
+    square_x := int(x / square_size_x)
+    square_y := int(y / square_size_y)
+
+	dump(square_x)
+	dump(square_y)
+}
+
 
 
 fn frame(app &App) {
@@ -130,6 +122,7 @@ fn main() {
 		init_fn: app.init_images_wrapper
 		width: 1000
 		height: 700
+		click_fn: click
 		frame_fn: frame
 
 	)
