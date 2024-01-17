@@ -6,6 +6,7 @@ chessv
 *.so
 *.dylib
 *.dll
+src
 
 # Ignore binary output folders
 bin/

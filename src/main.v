@@ -26,29 +26,40 @@ pub enum Piece {
 ///////////
 
 fn (mut app App) clear_board() {
-	for y in 0 .. 8 {for x in 0 .. 8 {app.board[y][x] = .empty_square}}
+	for y in 0 .. 8 {
+		for x in 0 .. 8 {
+			app.board[y][x] = .empty_square
+		}
+	}
+}
+
+fn (mut app App) move_piece() {
+	piece := app.board[app.origin_coords[0]][app.origin_coords[1]]
+	app.board[app.destination_coords[0]][app.destination_coords[1]] = piece
+	app.board[app.origin_coords[0]][app.origin_coords[1]] = .empty_square
 }
 
 fn (mut app App) new_game() {
+	app.selection_state = .origin_coords
 	app.clear_board()
-	black_pieces := [Piece.black_rook, Piece.black_knight, Piece.black_bishop, Piece.black_queen, Piece.black_king,
-		Piece.black_bishop, Piece.black_knight, Piece.black_rook]
+	black_pieces := [Piece.black_rook, Piece.black_knight, Piece.black_bishop, Piece.black_queen,
+		Piece.black_king, Piece.black_bishop, Piece.black_knight, Piece.black_rook]
 	for x_coord, piece in black_pieces {
-		app.board[x_coord][0] = piece
+		app.board[0][x_coord] = piece
 	}
 
-	white_pieces := [Piece.white_rook, Piece.white_knight, Piece.white_bishop, Piece.white_queen, Piece.white_king,
-		Piece.white_bishop, Piece.white_knight, Piece.white_rook]
+	white_pieces := [Piece.white_rook, Piece.white_knight, Piece.white_bishop, Piece.white_queen,
+		Piece.white_king, Piece.white_bishop, Piece.white_knight, Piece.white_rook]
 	for x_coord, piece in white_pieces {
-		app.board[x_coord][7] = piece
+		app.board[7][x_coord] = piece
 	}
 
 	for x_coord in 0 .. 8 {
-		app.board[x_coord][6] = Piece.black_pawn
+		app.board[1][x_coord] = Piece.black_pawn
 	}
 
 	for x_coord in 0 .. 8 {
-		app.board[x_coord][1] = Piece.white_pawn
+		app.board[6][x_coord] = Piece.white_pawn
 	}
 }
 
@@ -80,6 +91,28 @@ fn (app App) draw_pieces() {
 		for x_coord, square in rows {
 			if square == Piece.black_rook {
 				app.draw_piece_at_coordinate(app.black_rook, x_coord, y_coord)
+			} else if square == Piece.black_knight {
+				app.draw_piece_at_coordinate(app.black_knight, x_coord, y_coord)
+			} else if square == Piece.black_bishop {
+				app.draw_piece_at_coordinate(app.black_bishop, x_coord, y_coord)
+			} else if square == Piece.black_queen {
+				app.draw_piece_at_coordinate(app.black_queen, x_coord, y_coord)
+			} else if square == Piece.black_king {
+				app.draw_piece_at_coordinate(app.black_king, x_coord, y_coord)
+			} else if square == Piece.black_pawn {
+				app.draw_piece_at_coordinate(app.black_pawn, x_coord, y_coord)
+			} else if square == Piece.white_rook {
+				app.draw_piece_at_coordinate(app.white_rook, x_coord, y_coord)
+			} else if square == Piece.white_knight {
+				app.draw_piece_at_coordinate(app.white_knight, x_coord, y_coord)
+			} else if square == Piece.white_bishop {
+				app.draw_piece_at_coordinate(app.white_bishop, x_coord, y_coord)
+			} else if square == Piece.white_queen {
+				app.draw_piece_at_coordinate(app.white_queen, x_coord, y_coord)
+			} else if square == Piece.white_king {
+				app.draw_piece_at_coordinate(app.white_king, x_coord, y_coord)
+			} else if square == Piece.white_pawn {
+				app.draw_piece_at_coordinate(app.white_pawn, x_coord, y_coord)
 			}
 		}
 	}
@@ -93,24 +126,29 @@ fn frame(app &App) {
 }
 
 fn (mut app App) init_images() ! {
-	app.black_bishop = app.gg.create_image(os.resource_abs_path('./assets/black_bishop.png'))!
-	app.black_king = app.gg.create_image(os.resource_abs_path('./assets/black_king.png'))!
-	app.black_knight = app.gg.create_image(os.resource_abs_path('./assets/black_knight.png'))!
-	app.black_pawn = app.gg.create_image(os.resource_abs_path('./assets/black_pawn.png'))!
-	app.black_queen = app.gg.create_image(os.resource_abs_path('./assets/black_queen.png'))!
-	app.black_rook = app.gg.create_image(os.resource_abs_path('./assets/black_rook.png'))!
-	app.white_bishop = app.gg.create_image(os.resource_abs_path('./assets/white_bishop.png'))!
-	app.white_king = app.gg.create_image(os.resource_abs_path('./assets/white_king.png'))!
-	app.white_knight = app.gg.create_image(os.resource_abs_path('./assets/white_knight.png'))!
-	app.white_pawn = app.gg.create_image(os.resource_abs_path('./assets/white_pawn.png'))!
-	app.white_queen = app.gg.create_image(os.resource_abs_path('./assets/white_queen.png'))!
-	app.white_rook = app.gg.create_image(os.resource_abs_path('./assets/white_rook.png'))!
-	app.background = app.gg.create_image(os.resource_abs_path('./assets/background.png'))!
+	app.black_bishop = app.gg.create_image(os.resource_abs_path('../assets/black_bishop.png'))!
+	app.black_king = app.gg.create_image(os.resource_abs_path('../assets/black_king.png'))!
+	app.black_knight = app.gg.create_image(os.resource_abs_path('../assets/black_knight.png'))!
+	app.black_pawn = app.gg.create_image(os.resource_abs_path('../assets/black_pawn.png'))!
+	app.black_queen = app.gg.create_image(os.resource_abs_path('../assets/black_queen.png'))!
+	app.black_rook = app.gg.create_image(os.resource_abs_path('../assets/black_rook.png'))!
+	app.white_bishop = app.gg.create_image(os.resource_abs_path('../assets/white_bishop.png'))!
+	app.white_king = app.gg.create_image(os.resource_abs_path('../assets/white_king.png'))!
+	app.white_knight = app.gg.create_image(os.resource_abs_path('../assets/white_knight.png'))!
+	app.white_pawn = app.gg.create_image(os.resource_abs_path('../assets/white_pawn.png'))!
+	app.white_queen = app.gg.create_image(os.resource_abs_path('../assets/white_queen.png'))!
+	app.white_rook = app.gg.create_image(os.resource_abs_path('../assets/white_rook.png'))!
+	app.background = app.gg.create_image(os.resource_abs_path('../assets/background.png'))!
 }
 
 ///////////
 // event //
 ///////////
+
+enum SelectionState {
+	origin_coords
+	destination_coords
+}
 
 fn click(x f32, y f32, button gg.MouseButton, mut app App) {
 	board_width := app.background.width
@@ -128,8 +166,14 @@ fn click(x f32, y f32, button gg.MouseButton, mut app App) {
 	square_x := int(x / square_size_x)
 	square_y := int(y / square_size_y)
 
-	dump(square_x)
-	dump(square_y)
+	if app.selection_state == .origin_coords {
+		app.origin_coords = [square_y, square_x]
+		app.selection_state = .destination_coords
+	} else if app.selection_state == .destination_coords {
+		app.destination_coords = [square_y, square_x]
+		app.selection_state = .origin_coords
+		app.move_piece()
+	}
 }
 
 /////////
@@ -138,21 +182,25 @@ fn click(x f32, y f32, button gg.MouseButton, mut app App) {
 
 struct App {
 mut:
-	gg           &gg.Context = unsafe { nil }
-	black_bishop gg.Image
-	black_king   gg.Image
-	black_knight gg.Image
-	black_pawn   gg.Image
-	black_queen  gg.Image
-	black_rook   gg.Image
-	white_bishop gg.Image
-	white_king   gg.Image
-	white_knight gg.Image
-	white_pawn   gg.Image
-	white_queen  gg.Image
-	white_rook   gg.Image
-	background   gg.Image
-	board        [8][8]Piece
+	gg                 &gg.Context = unsafe { nil }
+	black_bishop       gg.Image
+	black_king         gg.Image
+	black_knight       gg.Image
+	black_pawn         gg.Image
+	black_queen        gg.Image
+	black_rook         gg.Image
+	white_bishop       gg.Image
+	white_king         gg.Image
+	white_knight       gg.Image
+	white_pawn         gg.Image
+	white_queen        gg.Image
+	white_rook         gg.Image
+	background         gg.Image
+	board              [8][8]Piece
+	selection_state    SelectionState
+	origin_coords      []int
+	destination_coords []int
+	is_whites_move     bool
 }
 
 fn main() {
