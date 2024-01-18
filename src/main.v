@@ -1,8 +1,7 @@
 import gg
 import os
 
-
-const game_game_board_length = 8
+const game_board_length = 8
 
 ///////////
 // Piece //
@@ -13,22 +12,50 @@ const game_game_board_length = 8
 // the legal_moves_game_board 2D array
 enum Piece {
 	illegal_move = -3
-	legal_move = -2
+	legal_move   = -2
 	empty_square = -1
+	black_rook   = 0
+	black_knight = 1
+	black_bishop = 2
+	black_queen  = 3
+	black_king   = 4
+	black_pawn   = 5
+	white_rook   = 10
+	white_knight = 11
+	white_bishop = 12
+	white_queen  = 13
+	white_king   = 14
+	white_pawn   = 15
+}
 
-	black_rook = 0
-	black_knight
-	black_bishop
-	black_queen
-	black_king
-	black_pawn
+fn (piece Piece) is_white() bool {
+	piece_int := int(piece)
+	return piece_int >= 10 && piece_int <= 15
+}
 
-	white_rook = 10
-	white_knight
-	white_bishop
-	white_queen
-	white_king
-	white_pawn
+fn (piece Piece) is_black() bool {
+	return !piece.is_white()
+}
+
+// use black piece as piece_right always
+fn (piece_left Piece) is_piece(piece_right Piece) bool {
+	if piece_right.is_white() {
+		return false
+	}
+	if int(piece_left) in [int(piece_right), int(piece_right) + 10] {
+		return true
+	}
+	return false
+}
+
+fn (piece_left Piece) is_color(player Player) bool {
+	return (piece_left.is_white() && player == .white)
+		|| (piece_left.is_black() && player == .black)
+}
+
+fn (piece_left Piece) is_opposite(piece_right Piece) bool {
+	return (piece_left.is_color(Player.white) && piece_right.is_color(Player.black))
+		|| (piece_left.is_color(Player.black) && piece_right.is_color(Player.white))
 }
 
 enum Player {
@@ -36,21 +63,21 @@ enum Player {
 	black
 }
 
-///////////
-// game_board //
-///////////
+//////////////////
+// game_board ///
+////////////////
 
 fn (mut app App) clear_game_board() {
-	for y in 0 .. game_game_board_length {
-		for x in 0 .. game_game_board_length {
+	for y in 0 .. game_board_length {
+		for x in 0 .. game_board_length {
 			app.game_board[y][x] = .empty_square
 		}
 	}
 }
 
 fn (mut app App) clear_legal_moves_game_board() {
-	for y in 0 .. game_game_board_length {
-		for x in 0 .. game_game_board_length {
+	for y in 0 .. game_board_length {
+		for x in 0 .. game_board_length {
 			app.legal_moves_game_board[y][x] = .illegal_move
 		}
 	}
@@ -71,25 +98,14 @@ fn (app App) piece_matches_player() bool {
 	return false
 }
 
-// fn (app App) update_legal_moves_game_board() {
-// 	app.origin_coords[0]
-// 	app.origin_coords[1]
-
-// 	mut y := 0
-// 	mut x := 0
-// 	for {
-// 		if y >= game_board_width {
-// 		}
-// 	}
-// }
-
-
 fn (mut app App) handle_origin_coords(y_coord int, x_coord int) {
 	app.origin_coords = [y_coord, x_coord]
 	app.origin_piece = app.game_board[y_coord][x_coord]
 	if app.piece_matches_player() {
 		// app.update_legal_moves_game_board()
-	} else { return }
+	} else {
+		return
+	}
 	app.selection_state = .destination_coords
 }
 
@@ -103,22 +119,11 @@ fn (mut app App) handle_coords(y_coord int, x_coord int) {
 	}
 }
 
-// fn (mut app App) set_piece_offsets() {
-// 	mut offsets := {
-// 		Piece.white_pawn:
-// 		{
-			
-// 		}
-// 	}
-// }
-
 fn (mut app App) new_game() {
 	app.selection_state = .origin_coords
 	app.current_player = .white
 	app.clear_game_board()
 	app.clear_legal_moves_game_board()
-
-	// app.set_piece_offsets()
 
 	black_pieces := [Piece.black_rook, Piece.black_knight, Piece.black_bishop, Piece.black_queen,
 		Piece.black_king, Piece.black_bishop, Piece.black_knight, Piece.black_rook]
@@ -132,11 +137,11 @@ fn (mut app App) new_game() {
 		app.game_board[7][x_coord] = piece
 	}
 
-	for x_coord in 0 .. game_game_board_length {
+	for x_coord in 0 .. game_board_length {
 		app.game_board[1][x_coord] = Piece.black_pawn
 	}
 
-	for x_coord in 0 .. game_game_board_length {
+	for x_coord in 0 .. game_board_length {
 		app.game_board[6][x_coord] = Piece.white_pawn
 	}
 }
@@ -155,8 +160,8 @@ fn (app App) draw_game_board() {
 }
 
 fn (app App) draw_piece_at_coordinate(piece gg.Image, x int, y int) {
-	square_width := f32(app.game_board_image.width) / f32(game_game_board_length)
-	square_height := f32(app.game_board_image.height) / f32(game_game_board_length)
+	square_width := f32(app.game_board_image.width) / f32(game_board_length)
+	square_height := f32(app.game_board_image.height) / f32(game_board_length)
 
 	x_coord := square_width * f32(x) + (square_width - f32(piece.width)) / 2.0
 	y_coord := square_height * f32(y) + (square_height - f32(piece.height)) / 2.0
@@ -238,14 +243,13 @@ fn click(x f32, y f32, button gg.MouseButton, mut app App) {
 	}
 
 	// Calculate the square indices based on the clicked coordinates
-	square_size_y := f32(game_board_height) / f32(game_game_board_length)
-	square_size_x := f32(game_board_width) / f32(game_game_board_length)
+	square_size_y := f32(game_board_height) / f32(game_board_length)
+	square_size_x := f32(game_board_width) / f32(game_board_length)
 
 	y_coord := int(y / square_size_y)
 	x_coord := int(x / square_size_x)
 
 	app.handle_coords(y_coord, x_coord)
-
 }
 
 fn on_event(e &gg.Event, mut app App) {
@@ -264,27 +268,27 @@ fn on_event(e &gg.Event, mut app App) {
 
 struct App {
 mut:
-	gg                 &gg.Context = unsafe { nil }
-	black_bishop       gg.Image
-	black_king         gg.Image
-	black_knight       gg.Image
-	black_pawn         gg.Image
-	black_queen        gg.Image
-	black_rook         gg.Image
-	white_bishop       gg.Image
-	white_king         gg.Image
-	white_knight       gg.Image
-	white_pawn         gg.Image
-	white_queen        gg.Image
-	white_rook         gg.Image
-	game_board_image         gg.Image
-	game_board              [game_game_board_length][game_game_board_length]Piece
-	selection_state    SelectionState
-	origin_coords      []int
-	destination_coords []int
-	origin_piece Piece
-	current_player Player
-	legal_moves_game_board [game_game_board_length][game_game_board_length]Piece
+	gg                     &gg.Context = unsafe { nil }
+	black_bishop           gg.Image
+	black_king             gg.Image
+	black_knight           gg.Image
+	black_pawn             gg.Image
+	black_queen            gg.Image
+	black_rook             gg.Image
+	white_bishop           gg.Image
+	white_king             gg.Image
+	white_knight           gg.Image
+	white_pawn             gg.Image
+	white_queen            gg.Image
+	white_rook             gg.Image
+	game_board_image       gg.Image
+	game_board             [game_board_length][game_board_length]Piece
+	selection_state        SelectionState
+	origin_coords          []int
+	destination_coords     []int
+	origin_piece           Piece
+	current_player         Player
+	legal_moves_game_board [game_board_length][game_board_length]Piece
 }
 
 fn main() {
