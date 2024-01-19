@@ -18,12 +18,27 @@ fn (mut app App) init_images() ! {
 	app.init_images_pieces(shapes, 'black')!
 	app.init_images_pieces(shapes, 'white')!
 	app.image_database['game_board_image'] = app.gg.create_image(os.resource_abs_path('../assets/game_board_image.png'))!
+	app.image_database['circle'] = app.gg.create_image(os.resource_abs_path('../assets/circle.png'))!
+}
+
+fn (app App) draw_legal_moves() {
+	for y_coord, rows in app.legal_moves_game_board {
+		for x_coord, piece in rows {
+			if piece.shape == .legal_move {
+				piece_image := app.image_database['circle'] or { panic('line 40') }
+				app.draw_piece_at_coordinate(piece_image, x_coord, y_coord)
+			}
+		}
+	}
 }
 
 fn frame(app &App) {
 	app.gg.begin()
 	app.draw_game_board()
 	app.draw_pieces()
+	if app.selection_state == .destination_coords {
+		app.draw_legal_moves()
+	}
 	app.gg.end()
 }
 
@@ -99,8 +114,8 @@ fn (mut app App) set_legal_moves_game_board(legal_moves []Coords) {
 	}
 	for legal_move in legal_moves {
 		app.legal_moves_game_board[legal_move.y_coord][legal_move.x_coord].shape = .legal_move
+		app.legal_moves_game_board[legal_move.y_coord][legal_move.x_coord].coords = Coords {y_coord: legal_move.y_coord, x_coord: legal_move.x_coord}
 	}
-	dump(app.legal_moves_game_board)
 }
 
 fn (mut app App) handle_coords(coords Coords) {
@@ -137,6 +152,7 @@ fn click(x f32, y f32, button gg.MouseButton, mut app App) {
 
 	y_coord := int(y / square_size_y)
 	x_coord := int(x / square_size_x)
+	
 	app.handle_coords(Coords{y_coord, x_coord})
 }
 
