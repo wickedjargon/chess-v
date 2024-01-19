@@ -1,30 +1,24 @@
 // NOTE: command used to increase image sizes: `mogrify -filter point -resize 400% *.png` (an imagemagick command)
 
-
 import gg
 import os
-
 
 fn (mut app App) init_images_wrapper() {
 	app.init_images() or { panic(err) }
 }
 
-fn (mut app App) init_images() ! {
-	app.black_bishop = app.gg.create_image(os.resource_abs_path('../assets/black_bishop.png'))!
-	app.black_king = app.gg.create_image(os.resource_abs_path('../assets/black_king.png'))!
-	app.black_knight = app.gg.create_image(os.resource_abs_path('../assets/black_knight.png'))!
-	app.black_pawn = app.gg.create_image(os.resource_abs_path('../assets/black_pawn.png'))!
-	app.black_queen = app.gg.create_image(os.resource_abs_path('../assets/black_queen.png'))!
-	app.black_rook = app.gg.create_image(os.resource_abs_path('../assets/black_rook.png'))!
-	app.white_bishop = app.gg.create_image(os.resource_abs_path('../assets/white_bishop.png'))!
-	app.white_king = app.gg.create_image(os.resource_abs_path('../assets/white_king.png'))!
-	app.white_knight = app.gg.create_image(os.resource_abs_path('../assets/white_knight.png'))!
-	app.white_pawn = app.gg.create_image(os.resource_abs_path('../assets/white_pawn.png'))!
-	app.white_queen = app.gg.create_image(os.resource_abs_path('../assets/white_queen.png'))!
-	app.white_rook = app.gg.create_image(os.resource_abs_path('../assets/white_rook.png'))!
-	app.game_board_image = app.gg.create_image(os.resource_abs_path('../assets/game_board_image.png'))!
+fn (mut app App) init_images_pieces(shapes []string, color string) ! {
+	for shape in shapes {
+		app.image_database['${color}_${shape}'] = app.gg.create_image(os.resource_abs_path('../assets/${color}_${shape}.png'))!
+	}
 }
 
+fn (mut app App) init_images() ! {
+	shapes := ['rook', 'knight', 'bishop', 'queen', 'king', 'pawn']
+	app.init_images_pieces(shapes, 'black')!
+	app.init_images_pieces(shapes, 'white')!
+	app.image_database['game_board_image'] = app.gg.create_image(os.resource_abs_path('../assets/game_board_image.png'))!
+}
 
 fn frame(app &App) {
 	app.gg.begin()
@@ -35,86 +29,25 @@ fn frame(app &App) {
 
 
 fn (app App) draw_game_board() {
-	app.gg.draw_image(0.0, 0.0, f32(app.game_board_image.width), f32(app.game_board_image.height),
-		app.game_board_image)
+	game_board_image := app.image_database['game_board_image'] or { panic('line 32') }
+	app.gg.draw_image(0.0, 0.0, f32(game_board_image.width), f32(game_board_image.height), game_board_image)
 }
 
-// fn (app App) draw_pieces_inner(map_key) {
-	
-// }
-
 fn (app App) draw_pieces() {
-// 	image_database = map[string]gg.Image
-// 	{
-// 		'black_rook' : app.black_rook
-// 		'black_knight': app.black_knight
-// 		'black_bishop' : app.black_bishop
-// 		'black_queen': app.black_queen
-// 		'black_king': app.black_king
-// 		'black_pawn': app.black_pawn
-// 		'white_rook': app.white_rook
-// 		'white_knight' app.white_knight
-// 	}
-
-// app.black_bishop
-// app.black_king
-// app.black_knight
-// app.black_pawn
-// app.black_queen
-// app.black_rook
-// app.white_bishop
-// app.white_king
-// app.white_knight
-// app.white_pawn
-// app.white_queen
-// app.white_rook      	
-	
-	
 	for y_coord, rows in app.game_board {
 		for x_coord, piece in rows {
-			if piece.shape == .rook && piece.color == .black {
-				app.draw_piece_at_coordinate(app.black_rook, x_coord, y_coord)
-			}
-			else if piece.shape == .knight && piece.color == .black {
-				app.draw_piece_at_coordinate(app.black_knight, x_coord, y_coord)
-			}
-			else if piece.shape == .bishop && piece.color == .black {
-				app.draw_piece_at_coordinate(app.black_bishop, x_coord, y_coord)
-			}
-			else if piece.shape == .queen && piece.color == .black {
-				app.draw_piece_at_coordinate(app.black_queen, x_coord, y_coord)
-			}
-			else if piece.shape == .king && piece.color == .black {
-				app.draw_piece_at_coordinate(app.black_king, x_coord, y_coord)
-			}
-			else if piece.shape == .pawn && piece.color == .black {
-				app.draw_piece_at_coordinate(app.black_pawn, x_coord, y_coord)
-			}
-			else if piece.shape == .rook && piece.color == .white {
-				app.draw_piece_at_coordinate(app.white_rook, x_coord, y_coord)
-			}
-			else if piece.shape == .knight && piece.color == .white {
-				app.draw_piece_at_coordinate(app.white_knight, x_coord, y_coord)
-			}
-			else if piece.shape == .bishop && piece.color == .white {
-				app.draw_piece_at_coordinate(app.white_bishop, x_coord, y_coord)
-			}
-			else if piece.shape == .queen && piece.color == .white {
-				app.draw_piece_at_coordinate(app.white_queen, x_coord, y_coord)
-			}
-			else if piece.shape == .king && piece.color == .white {
-				app.draw_piece_at_coordinate(app.white_king, x_coord, y_coord)
-			}
-			else if piece.shape == .pawn && piece.color == .white {
-				app.draw_piece_at_coordinate(app.white_pawn, x_coord, y_coord)
+			if piece.shape != .empty_square {
+				piece_image := app.image_database[piece.map_key] or { panic('line 40') }
+				app.draw_piece_at_coordinate(piece_image, x_coord, y_coord)
 			}
 		}
 	}
 }
 
-fn (app App) draw_piece_at_coordinate(piece gg.Image, x int, y int) {
-	square_width := f32(app.game_board_image.width) / f32(game_board_dimension)
-	square_height := f32(app.game_board_image.height) / f32(game_board_dimension)
+fn (app App) draw_piece_at_coordinate (piece gg.Image, x int, y int) {
+	game_board_image := app.image_database['game_board_image'] or { panic('line 48') }
+	square_width := f32(game_board_image.width) / f32(game_board_dimension)
+	square_height := f32(game_board_image.height) / f32(game_board_dimension)
 
 	x_coord := square_width * f32(x) + (square_width - f32(piece.width)) / 2.0
 	y_coord := square_height * f32(y) + (square_height - f32(piece.height)) / 2.0
@@ -127,7 +60,6 @@ fn place_piece_new_game(mut game_board [][]Piece, piece Piece, y_coord int, x_co
 		mut local_piece := piece
 		local_piece.coords.x_coord = x_coord
 		local_piece.coords.y_coord = y_coord
-		local_piece.map_key = '${local_piece.color}_${local_piece.shape}'
 		game_board[y_coord][x_coord] = local_piece
 	}
 }
@@ -159,11 +91,28 @@ fn coords_in_legal_moves(legal_moves []Coords, coords Coords) bool {
 	return ret
 }
 
+fn (mut app App) set_legal_moves_game_board(legal_moves []Coords) {
+	for y_coord, mut row in app.legal_moves_game_board {
+		for x_coord, mut legality_piece in row {
+			legality_piece.shape = .illegal_move
+		}
+	}
+	for legal_move in legal_moves {
+		app.legal_moves_game_board[legal_move.y_coord][legal_move.x_coord].shape = .legal_move
+	}
+	dump(app.legal_moves_game_board)
+}
+
 fn (mut app App) handle_coords(coords Coords) {
 	if (app.selection_state == .origin_coords) && (app.game_board[coords.y_coord][coords.x_coord].color == app.current_player) {
 		app.origin_coords = coords
 		app.selection_state = .destination_coords
-	} else if app.selection_state == .destination_coords && coords_in_legal_moves(app.game_board[app.origin_coords.y_coord][app.origin_coords.x_coord].legal_moves, coords) {
+		app.set_legal_moves_game_board(app.game_board[app.origin_coords.y_coord][app.origin_coords.x_coord].legal_moves)
+	} else if app.selection_state == .destination_coords  {
+		if !coords_in_legal_moves(app.game_board[app.origin_coords.y_coord][app.origin_coords.x_coord].legal_moves, coords) {
+			app.selection_state = .origin_coords
+			return
+		}
 		app.destination_coords = coords
 		move_piece(mut app.game_board, app.origin_coords, app.destination_coords)
 		set_legal_moves_wrapper(mut app.game_board)
@@ -173,8 +122,9 @@ fn (mut app App) handle_coords(coords Coords) {
 }
 
 fn click(x f32, y f32, button gg.MouseButton, mut app App) {
-	game_board_width := app.game_board_image.width
-	game_board_height := app.game_board_image.height
+	game_board := app.image_database['game_board_image'] or { panic('line 108') }
+	game_board_width := game_board.width
+	game_board_height := game_board.height
 
 	// Check if the click is within the chessgame_board bounds
 	if x < 0.0 || x > f32(game_board_width) || y < 0.0 || y > f32(game_board_height) {
@@ -238,7 +188,9 @@ fn (a Coords) + (b Coords) Coords {
 }
 
 enum Shape {
-	not_set = -2
+	not_set = -4
+	illegal_move = -3
+	legal_move = -2
 	empty_square = -1
 	rook         = 0
 	knight       = 1
@@ -288,6 +240,7 @@ fn set_pieces_new_game(mut game_board [][]Piece) {
 	for x_coord, piece in white_pieces {
 		place_piece_new_game(mut game_board, piece, y_coord, x_coord)
 	}
+
 	// setup the pawn pieces
 	y_coord = 1
 	black_pawn := Piece { shape: .pawn color: .black}
@@ -313,28 +266,6 @@ fn set_empty_pieces(mut game_board [][]Piece) {
 }
 
 
-struct App {
-mut:
-	gg               &gg.Context = unsafe { nil }
-	black_bishop     gg.Image
-	black_king       gg.Image
-	black_knight     gg.Image
-	black_pawn       gg.Image
-	black_queen      gg.Image
-	black_rook       gg.Image
-	white_bishop     gg.Image
-	white_king       gg.Image
-	white_knight     gg.Image
-	white_pawn       gg.Image
-	white_queen      gg.Image
-	white_rook       gg.Image
-	game_board_image gg.Image
-	game_board       [][]Piece
-	selection_state  SelectionState
-	current_player   Color
-	origin_coords Coords
-	destination_coords Coords
-}
 
 fn origin_sixth_row(game_board [][]Piece, piece Piece, absolute_destination_coords Coords) bool {
 	return piece.coords.y_coord == 6
@@ -411,13 +342,35 @@ fn set_legal_moves_wrapper(mut game_board [][]Piece) {
 	}
 }
 
+fn set_map_keys(mut game_board [][]Piece) {
+	for y_coord, mut row in game_board {
+		for x_coord, mut piece in row {
+			piece.map_key = '${piece.color}_${piece.shape}'
+		}
+	}
+}
+
 fn (mut app App) new_game() {
 	app.selection_state = .origin_coords
 	app.current_player = .white
 	app.game_board = [][]Piece{len: 8, cap: 8, init: []Piece{len: 8, cap: 8, init: Piece{}}}
+	app.legal_moves_game_board = [][]Piece{len: 8, cap: 8, init: []Piece{len: 8, cap: 8, init: Piece{shape: .illegal_move}}}
 	set_empty_pieces(mut app.game_board)
 	set_pieces_new_game(mut app.game_board)
+	set_map_keys(mut app.game_board)
 	set_legal_moves_wrapper(mut app.game_board)
+}
+
+struct App {
+mut:
+	gg               &gg.Context = unsafe { nil }
+	image_database map[string]gg.Image
+	game_board       [][]Piece
+	selection_state  SelectionState
+	current_player   Color
+	origin_coords Coords
+	destination_coords Coords
+	legal_moves_game_board [][]Piece
 }
 
 fn main() {
