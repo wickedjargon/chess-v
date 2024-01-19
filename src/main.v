@@ -1,3 +1,5 @@
+// NOTE: command used to increase image sizes: `mogrify -filter point -resize 400% *.png` (an imagemagick command)
+
 import gg
 import os
 
@@ -79,75 +81,6 @@ fn (app App) draw_pieces() {
 	}
 }
 
-// //////////////////
-// // game_board ///
-// ////////////////
-
-// fn move_piece(board Board, piece Piece, offset Coords) {
-// 	origin_coords := piece.coords
-// 	destination_coords := piece.cords + offset
-// 	game_board[origin_coords.y][origin_coords.x] = empty_square
-// 	game_board[destination_coords.y][destination_coords.x] = piece
-// 	piece.y = destination_coords.y
-// 	piece.x = destination_coords.x
-// }
-
-// fn place_piece_new_game(board Board, piece Piece, coords Coords) {
-// 	app.game_board[y_coord][x_coord] = piece
-// 	piece.coords.x_coord = x_coord
-// 	piece.coords.y_coord = y_coord
-// }
-
-// fn clear_game_board(board Board) {
-// 	for y in 0 .. game_board_dimension {
-// 		for x in 0 .. game_board_dimension {
-// 			app.game_board[y][x] = empty_square
-// 		}
-// 	}
-// }
-
-// fn new_game(game_board) {
-// 	app.selection_state = .origin_coords
-// 	app.current_player = .white
-// 	clear_game_board(app.game_board)
-
-// 	black_pieces := get_starting_pieces(Color.black)
-// 	white_pieces := get_starting_pieces(color.white)
-
-// 	// setup the back-rank pieces
-// 	mut y_coord := 0
-// 	for x_coord, piece in black_pieces {
-// 		place_piece_new_game(pie)
-// 	}
-// 	y_coord = 7
-// 	for x_coord, piece in white_pieces {
-// 		app.game_board[y_coord][x_coord] = piece
-// 		piece.coords.x_coord = x_coord
-// 		piece.coords.y_coord = y_coord
-// 	}
-
-// 	// setup the pawn pieces
-// 	pawn = Piece { shape: .pawn }
-// 	y_coord = 1
-// 	for x_coord in 0 .. game_board_dimension {
-// 		app.game_board[y_coord][x_coord] = pawn
-// 		pawn.coords.y = y_coord
-// 		pawn.coords.x = x_coord
-// 	}
-// 	y_coord = 6
-// 	for x_coord in 0 .. game_board_dimension {
-// 		app.game_board[y_coord][x_coord] = pawn
-// 		pawn.coords.y = y_coord
-// 		pawn.coords.x = x_coord
-// 	}
-// }
-
-// //////////
-// // draw //
-// //////////
-
-
-
 fn (app App) draw_piece_at_coordinate(piece gg.Image, x int, y int) {
 	square_width := f32(app.game_board_image.width) / f32(game_board_dimension)
 	square_height := f32(app.game_board_image.height) / f32(game_board_dimension)
@@ -157,14 +90,6 @@ fn (app App) draw_piece_at_coordinate(piece gg.Image, x int, y int) {
 
 	app.gg.draw_image(x_coord, y_coord, f32(piece.width), f32(piece.height), piece)
 }
-
-
-
-
-// ///////////
-// // event //
-// ///////////
-
 
 fn place_piece_new_game(mut game_board [][]Piece, piece Piece, y_coord int, x_coord int) {
 	if game_board[y_coord][x_coord].shape == .empty_square  {
@@ -192,13 +117,13 @@ fn move_piece(mut game_board [][]Piece, origin_coords Coords, destination_coords
 	game_board[origin_coords.y_coord][origin_coords.x_coord] = Piece{shape: .empty_square, coords: origin_coords}
 }
 
-fn (mut app App) handle_coords(y_coord int, x_coord int) {
-	piece := app.game_board[y_coord][x_coord]
+fn (mut app App) handle_coords(coords Coords) {
+	piece := app.game_board[coords.y_coord][coords.x_coord]
 	if (app.selection_state == .origin_coords) && (piece.color == app.current_player) {
-		app.origin_coords = Coords{y_coord: y_coord, x_coord: x_coord}
+		app.origin_coords = coords
 		app.selection_state = .destination_coords
 	} else if app.selection_state == .destination_coords && (piece.shape == .empty_square || piece.color == opposite_color(piece.color)) {
-		app.destination_coords = Coords{y_coord: y_coord, x_coord: x_coord}
+		app.destination_coords = coords
 		move_piece(mut app.game_board, app.origin_coords, app.destination_coords)
 		app.current_player = opposite_color(app.current_player)
 		app.selection_state = .origin_coords
@@ -220,7 +145,7 @@ fn click(x f32, y f32, button gg.MouseButton, mut app App) {
 
 	y_coord := int(y / square_size_y)
 	x_coord := int(x / square_size_x)
-	app.handle_coords(y_coord, x_coord)
+	app.handle_coords(Coords{y_coord, x_coord})
 }
 
 fn on_event(e &gg.Event, mut app App) {
@@ -248,10 +173,11 @@ enum Color {
 	black
 }
 
-struct RelativeMove {
+struct RelativeCoords {
 mut:
-	offset     Coords
-	deviations []string
+	relative_coords     Coords
+	conditions []fn(piece Piece)bool
+	modifiers []string
 }
 
 // struct Move {
@@ -263,6 +189,10 @@ struct Coords {
 mut:
 	y_coord int
 	x_coord int
+}
+
+fn (a Coords) + (b Coords) Coords {
+	return Coords{y_coord: (a.y_coord + b.y_coord), x_coord: (a.x_coord + b.x_coord)}
 }
 
 enum Shape {
@@ -281,28 +211,8 @@ struct Piece {
 	color Color
 mut:
 	coords Coords
-	legal_moves  []RelativeMove
+	legal_moves  []Coords
 }
-
-// fn new_game(game_board) {
-// 	app.selection_state = .origin_coords
-// 	app.current_player = .white
-// 	clear_game_board(app.game_board)
-
-// 	black_pieces := get_starting_pieces(Color.black)
-// 	white_pieces := get_starting_pieces(color.white)
-
-// 	// setup the back-rank pieces
-// 	mut y_coord := 0
-// 	for x_coord, piece in black_pieces {
-// 		place_piece_new_game(pie)
-// 	}
-// 	y_coord = 7
-// 	for x_coord, piece in white_pieces {
-// 		app.game_board[y_coord][x_coord] = piece
-// 		piece.coords.x_coord = x_coord
-// 		piece.coords.y_coord = y_coord
-// 	}
 
 fn get_starting_pieces(color Color) []Piece {
 	mut pieces := []Piece{}
@@ -322,7 +232,6 @@ fn get_starting_pieces(color Color) []Piece {
 }
 
 fn set_pieces_new_game(mut game_board [][]Piece) {
-
 	// setup the back-rank pieces
 	black_pieces := get_starting_pieces(Color.black)
 	mut y_coord := 0
@@ -382,12 +291,57 @@ mut:
 	destination_coords Coords
 }
 
+fn origin_sixth_row(piece Piece) bool {
+	return piece.coords.y_coord == 6
+}
+
+fn get_absolute_coords(piece_coords Coords, relative_coords Coords) Coords {
+	return piece_coords + relative_coords
+}
+
+fn within_board(absolute_coords Coords) bool {
+	return absolute_coords.x_coord >= 0 && absolute_coords.x_coord < game_board_dimension && absolute_coords.y_coord >= 0 && absolute_coords.y_coord < game_board_dimension
+}
+
+fn set_legal_moves(mut piece Piece) {
+	mut local_piece := piece
+	relative_coords_database :=
+		{
+			'white_pawn':
+			[
+				RelativeCoords{relative_coords: Coords{y_coord: -2, x_coord: 0}, conditions: [origin_sixth_row], modifiers: ['no-repeat']},
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 0}, conditions: [], modifiers: ['no-repeat']},
+				// RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: -1}, conditions: [destination_capture], modifiers: ['no-repeat']},
+				// RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 1}, conditions: [destination_capture], modifiers: ['no-repeat']},
+			]
+		}
+	if piece.shape == .pawn && piece.color == .white {
+		for relative_coords in relative_coords_database['white_pawn'] {
+			absolute_coords := piece.coords + relative_coords.relative_coords
+			if within_board(absolute_coords) {
+				piece.legal_moves << absolute_coords
+			}
+		}
+	}
+}
+
+fn set_legal_moves_wrapper(mut game_board [][]Piece) {
+	for y_coord, mut row in mut game_board {
+		for x_coord, mut piece in mut row {
+			if piece.shape != .empty_square {
+				set_legal_moves(mut piece)
+			}
+		}
+	}
+}
+
 fn (mut app App) new_game() {
 	app.selection_state = .origin_coords
 	app.current_player = .white
 	app.game_board = [][]Piece{len: 8, cap: 8, init: []Piece{len: 8, cap: 8, init: Piece{}}}
 	set_empty_pieces(mut app.game_board)
 	set_pieces_new_game(mut &app.game_board)
+	set_legal_moves_wrapper(mut app.game_board)
 }
 
 fn main() {
@@ -405,5 +359,3 @@ fn main() {
 	)
 	app.gg.run()
 }
-
-
