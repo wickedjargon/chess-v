@@ -39,7 +39,37 @@ fn (app App) draw_game_board() {
 		app.game_board_image)
 }
 
+// fn (app App) draw_pieces_inner(map_key) {
+	
+// }
+
 fn (app App) draw_pieces() {
+// 	image_database = map[string]gg.Image
+// 	{
+// 		'black_rook' : app.black_rook
+// 		'black_knight': app.black_knight
+// 		'black_bishop' : app.black_bishop
+// 		'black_queen': app.black_queen
+// 		'black_king': app.black_king
+// 		'black_pawn': app.black_pawn
+// 		'white_rook': app.white_rook
+// 		'white_knight' app.white_knight
+// 	}
+
+// app.black_bishop
+// app.black_king
+// app.black_knight
+// app.black_pawn
+// app.black_queen
+// app.black_rook
+// app.white_bishop
+// app.white_king
+// app.white_knight
+// app.white_pawn
+// app.white_queen
+// app.white_rook      	
+	
+	
 	for y_coord, rows in app.game_board {
 		for x_coord, piece in rows {
 			if piece.shape == .rook && piece.color == .black {
@@ -97,6 +127,7 @@ fn place_piece_new_game(mut game_board [][]Piece, piece Piece, y_coord int, x_co
 		mut local_piece := piece
 		local_piece.coords.x_coord = x_coord
 		local_piece.coords.y_coord = y_coord
+		local_piece.map_key = '${local_piece.color}_${local_piece.shape}'
 		game_board[y_coord][x_coord] = local_piece
 	}
 }
@@ -120,7 +151,6 @@ fn move_piece(mut game_board [][]Piece, origin_coords Coords, destination_coords
 
 fn coords_in_legal_moves(legal_moves []Coords, coords Coords) bool {
 	mut ret := false
-	dump(legal_moves)
 	for legal_move in legal_moves {
 		if (legal_move.y_coord == coords.y_coord) && (legal_move.x_coord == coords.x_coord) {
 			ret = true
@@ -133,10 +163,10 @@ fn (mut app App) handle_coords(coords Coords) {
 	if (app.selection_state == .origin_coords) && (app.game_board[coords.y_coord][coords.x_coord].color == app.current_player) {
 		app.origin_coords = coords
 		app.selection_state = .destination_coords
-		set_legal_moves_wrapper(mut app.game_board)
 	} else if app.selection_state == .destination_coords && coords_in_legal_moves(app.game_board[app.origin_coords.y_coord][app.origin_coords.x_coord].legal_moves, coords) {
 		app.destination_coords = coords
 		move_piece(mut app.game_board, app.origin_coords, app.destination_coords)
+		set_legal_moves_wrapper(mut app.game_board)
 		app.current_player = opposite_color(app.current_player)
 		app.selection_state = .origin_coords
 	}
@@ -188,7 +218,7 @@ enum Color {
 struct RelativeCoords {
 mut:
 	relative_coords     Coords
-	conditions []fn(piece Piece)bool
+	conditions []fn ([][]Piece, Piece, Coords) bool
 	modifiers []string
 }
 
@@ -219,11 +249,14 @@ enum Shape {
 }
 
 struct Piece {
-	shape Shape
 	color Color
 mut:
+	shape Shape
 	coords Coords
 	legal_moves  []Coords
+	has_moved bool // only needed for king and rook
+	last_move []Coords // only needed for pawns for En Passant
+	map_key string
 }
 
 fn get_starting_pieces(color Color) []Piece {
@@ -303,44 +336,66 @@ mut:
 	destination_coords Coords
 }
 
-fn origin_sixth_row(piece Piece) bool {
+fn origin_sixth_row(game_board [][]Piece, piece Piece, absolute_destination_coords Coords) bool {
 	return piece.coords.y_coord == 6
 }
 
-fn get_absolute_coords(piece_coords Coords, relative_coords Coords) Coords {
-	return piece_coords + relative_coords
+
+fn origin_first_row(game_board [][]Piece, piece Piece, absolute_destination_coords Coords) bool {
+	return piece.coords.y_coord == 1
 }
 
-fn within_board(absolute_coords Coords) bool {
-	return absolute_coords.x_coord >= 0 && absolute_coords.x_coord < game_board_dimension && absolute_coords.y_coord >= 0 && absolute_coords.y_coord < game_board_dimension
+fn within_board(absolute_destination_coords Coords) bool {
+	return absolute_destination_coords.x_coord >= 0 && absolute_destination_coords.x_coord < game_board_dimension && absolute_destination_coords.y_coord >= 0 && absolute_destination_coords.y_coord < game_board_dimension
 }
 
-fn all_conditions_met(piece Piece, conditions []fn(piece Piece) bool) bool {
+fn destination_no_capture(game_board [][]Piece, piece Piece, absolute_destination_coords Coords) bool {
+	return true
+}
+
+fn all_conditions_met(game_board [][]Piece, piece Piece, absolute_destination_coords Coords, conditions []fn ([][]Piece, Piece, Coords) bool) bool {
 	for condition in conditions {
-		if condition(piece) == false {
+		if condition(game_board, piece, absolute_destination_coords) == false {
 			return false
 		}
 	}
 	return true
 }
 
-fn set_legal_moves(mut piece Piece) {
+fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 	// mut local_piece := piece
 	relative_coords_database :=
 		{
 			'white_pawn':
 			[
-				RelativeCoords{relative_coords: Coords{y_coord: -2, x_coord: 0}, conditions: [origin_sixth_row], modifiers: ['no-repeat']},
-				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 0}, conditions: [], modifiers: ['no-repeat']},
+				RelativeCoords{relative_coords: Coords{y_coord: -2, x_coord: 0}, conditions: [origin_sixth_row, destination_no_capture], modifiers: ['no-repeat']},
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 0}, conditions: [destination_no_capture], modifiers: ['no-repeat']},
+				// RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: -1}, conditions: [destination_capture], modifiers: ['no-repeat']},
+				// RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 1}, conditions: [destination_capture], modifiers: ['no-repeat']},
+			],
+			'black_pawn':
+			[
+				RelativeCoords{relative_coords: Coords{y_coord: 2, x_coord: 0}, conditions: [origin_first_row, destination_no_capture], modifiers: ['no-repeat']},
+				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: 0}, conditions: [destination_no_capture], modifiers: ['no-repeat']},
 				// RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: -1}, conditions: [destination_capture], modifiers: ['no-repeat']},
 				// RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 1}, conditions: [destination_capture], modifiers: ['no-repeat']},
 			]
 		}
+	piece.legal_moves = []
+
 	if piece.shape == .pawn && piece.color == .white {
 		for relative_coords in relative_coords_database['white_pawn'] {
-			absolute_coords := piece.coords + relative_coords.relative_coords
-			if all_conditions_met(piece, relative_coords.conditions) && within_board(absolute_coords) {
-				piece.legal_moves << absolute_coords
+			absolute_destination_coords := piece.coords + relative_coords.relative_coords
+			if within_board(absolute_destination_coords) && all_conditions_met(game_board, piece, absolute_destination_coords, relative_coords.conditions) {
+				piece.legal_moves << absolute_destination_coords
+			}
+		}
+	}
+	if piece.shape == .pawn && piece.color == .black {
+		for relative_coords in relative_coords_database['black_pawn'] {
+			absolute_destination_coords := piece.coords + relative_coords.relative_coords
+			if within_board(absolute_destination_coords) && all_conditions_met(game_board, piece,  absolute_destination_coords, relative_coords.conditions) {
+				piece.legal_moves << absolute_destination_coords
 			}
 		}
 	}
@@ -350,7 +405,7 @@ fn set_legal_moves_wrapper(mut game_board [][]Piece) {
 	for y_coord, mut row in game_board {
 		for x_coord, mut piece in row {
 			if piece.shape != .empty_square {
-				set_legal_moves(mut piece)
+				set_legal_moves(game_board, mut piece)
 			}
 		}
 	}
@@ -362,6 +417,7 @@ fn (mut app App) new_game() {
 	app.game_board = [][]Piece{len: 8, cap: 8, init: []Piece{len: 8, cap: 8, init: Piece{}}}
 	set_empty_pieces(mut app.game_board)
 	set_pieces_new_game(mut app.game_board)
+	set_legal_moves_wrapper(mut app.game_board)
 }
 
 fn main() {
