@@ -1,5 +1,6 @@
 // NOTE: command used to increase image sizes: `mogrify -filter point -resize 400% *.png` (an imagemagick command)
 
+
 import gg
 import os
 
@@ -117,12 +118,23 @@ fn move_piece(mut game_board [][]Piece, origin_coords Coords, destination_coords
 	game_board[origin_coords.y_coord][origin_coords.x_coord] = Piece{shape: .empty_square, coords: origin_coords}
 }
 
+fn coords_in_legal_moves(legal_moves []Coords, coords Coords) bool {
+	mut ret := false
+	dump(legal_moves)
+	for legal_move in legal_moves {
+		if (legal_move.y_coord == coords.y_coord) && (legal_move.x_coord == coords.x_coord) {
+			ret = true
+		}
+	}
+	return ret
+}
+
 fn (mut app App) handle_coords(coords Coords) {
-	piece := app.game_board[coords.y_coord][coords.x_coord]
-	if (app.selection_state == .origin_coords) && (piece.color == app.current_player) {
+	if (app.selection_state == .origin_coords) && (app.game_board[coords.y_coord][coords.x_coord].color == app.current_player) {
 		app.origin_coords = coords
 		app.selection_state = .destination_coords
-	} else if app.selection_state == .destination_coords && (piece.shape == .empty_square || piece.color == opposite_color(piece.color)) {
+		set_legal_moves_wrapper(mut app.game_board)
+	} else if app.selection_state == .destination_coords && coords_in_legal_moves(app.game_board[app.origin_coords.y_coord][app.origin_coords.x_coord].legal_moves, coords) {
 		app.destination_coords = coords
 		move_piece(mut app.game_board, app.origin_coords, app.destination_coords)
 		app.current_player = opposite_color(app.current_player)
@@ -236,23 +248,23 @@ fn set_pieces_new_game(mut game_board [][]Piece) {
 	black_pieces := get_starting_pieces(Color.black)
 	mut y_coord := 0
 	for x_coord, piece in black_pieces {
-		place_piece_new_game(mut &game_board, piece, y_coord, x_coord)
+		place_piece_new_game(mut game_board, piece, y_coord, x_coord)
 	}
 	y_coord = 7
 	white_pieces := get_starting_pieces(Color.white)
 	for x_coord, piece in white_pieces {
-		place_piece_new_game(mut &game_board, piece, y_coord, x_coord)
+		place_piece_new_game(mut game_board, piece, y_coord, x_coord)
 	}
 	// setup the pawn pieces
 	y_coord = 1
 	black_pawn := Piece { shape: .pawn color: .black}
 	for x_coord in 0 .. game_board_dimension {
-		place_piece_new_game(mut &game_board, black_pawn, y_coord, x_coord)
+		place_piece_new_game(mut game_board, black_pawn, y_coord, x_coord)
 	}
 	y_coord = 6
 	white_pawn := Piece { shape: .pawn color: .white}
 	for x_coord in 0 .. game_board_dimension {
-		place_piece_new_game(mut &game_board, white_pawn, y_coord, x_coord)
+		place_piece_new_game(mut game_board, white_pawn, y_coord, x_coord)
 	}
 }
 
@@ -303,8 +315,17 @@ fn within_board(absolute_coords Coords) bool {
 	return absolute_coords.x_coord >= 0 && absolute_coords.x_coord < game_board_dimension && absolute_coords.y_coord >= 0 && absolute_coords.y_coord < game_board_dimension
 }
 
+fn all_conditions_met(piece Piece, conditions []fn(piece Piece) bool) bool {
+	for condition in conditions {
+		if condition(piece) == false {
+			return false
+		}
+	}
+	return true
+}
+
 fn set_legal_moves(mut piece Piece) {
-	mut local_piece := piece
+	// mut local_piece := piece
 	relative_coords_database :=
 		{
 			'white_pawn':
@@ -318,7 +339,7 @@ fn set_legal_moves(mut piece Piece) {
 	if piece.shape == .pawn && piece.color == .white {
 		for relative_coords in relative_coords_database['white_pawn'] {
 			absolute_coords := piece.coords + relative_coords.relative_coords
-			if within_board(absolute_coords) {
+			if all_conditions_met(piece, relative_coords.conditions) && within_board(absolute_coords) {
 				piece.legal_moves << absolute_coords
 			}
 		}
@@ -326,8 +347,8 @@ fn set_legal_moves(mut piece Piece) {
 }
 
 fn set_legal_moves_wrapper(mut game_board [][]Piece) {
-	for y_coord, mut row in mut game_board {
-		for x_coord, mut piece in mut row {
+	for y_coord, mut row in game_board {
+		for x_coord, mut piece in row {
 			if piece.shape != .empty_square {
 				set_legal_moves(mut piece)
 			}
@@ -340,8 +361,7 @@ fn (mut app App) new_game() {
 	app.current_player = .white
 	app.game_board = [][]Piece{len: 8, cap: 8, init: []Piece{len: 8, cap: 8, init: Piece{}}}
 	set_empty_pieces(mut app.game_board)
-	set_pieces_new_game(mut &app.game_board)
-	set_legal_moves_wrapper(mut app.game_board)
+	set_pieces_new_game(mut app.game_board)
 }
 
 fn main() {
