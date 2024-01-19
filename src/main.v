@@ -152,7 +152,7 @@ fn click(x f32, y f32, button gg.MouseButton, mut app App) {
 
 	y_coord := int(y / square_size_y)
 	x_coord := int(x / square_size_x)
-	
+
 	app.handle_coords(Coords{y_coord, x_coord})
 }
 
@@ -297,7 +297,7 @@ fn within_board(absolute_destination_coords Coords) bool {
 }
 
 fn destination_no_capture(game_board [][]Piece, piece Piece, absolute_destination_coords Coords) bool {
-	return true
+	return game_board[absolute_destination_coords.y_coord][absolute_destination_coords.x_coord].color != opposite_color(piece.color)
 }
 
 fn all_conditions_met(game_board [][]Piece, piece Piece, absolute_destination_coords Coords, conditions []fn ([][]Piece, Piece, Coords) bool) bool {
@@ -309,6 +309,10 @@ fn all_conditions_met(game_board [][]Piece, piece Piece, absolute_destination_co
 	return true
 }
 
+fn destination_capture(game_board [][]Piece, piece Piece, absolute_destination_coords Coords) bool {
+	return game_board[absolute_destination_coords.y_coord][absolute_destination_coords.x_coord].color == opposite_color(piece.color)
+}
+
 fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 	// mut local_piece := piece
 	relative_coords_database :=
@@ -317,8 +321,8 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 			[
 				RelativeCoords{relative_coords: Coords{y_coord: -2, x_coord: 0}, conditions: [origin_sixth_row, destination_no_capture], modifiers: ['no-repeat']},
 				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 0}, conditions: [destination_no_capture], modifiers: ['no-repeat']},
-				// RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: -1}, conditions: [destination_capture], modifiers: ['no-repeat']},
-				// RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 1}, conditions: [destination_capture], modifiers: ['no-repeat']},
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: -1}, conditions: [destination_capture], modifiers: ['no-repeat']},
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 1}, conditions: [destination_capture], modifiers: ['no-repeat']},
 			],
 			'black_pawn':
 			[
