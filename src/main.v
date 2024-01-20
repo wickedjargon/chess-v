@@ -1,4 +1,6 @@
 // NOTE: command used to increase image sizes: `mogrify -filter point -resize 400% *.png` (an imagemagick command)
+//
+
 import gg
 import os
 
@@ -23,7 +25,7 @@ fn (mut app App) init_images() ! {
 fn (app App) draw_legal_moves() {
 	for y_coord, rows in app.legal_moves_game_board {
 		for x_coord, piece in rows {
-			if piece.shape == .legal_move {
+			if piece.shape == .legal_move && app.game_board[y_coord][x_coord].shape != .king {
 				piece_image := app.image_database['circle'] or { panic('line 40') }
 				app.draw_piece_at_coordinate(piece_image, x_coord, y_coord)
 			}
@@ -130,17 +132,19 @@ fn (mut app App) handle_coords(coords Coords) {
 		app.set_legal_moves_game_board(app.game_board[app.origin_coords.y_coord][app.origin_coords.x_coord].legal_moves)
 	} else if app.selection_state == .destination_coords {
 		if !coords_in_legal_moves(app.game_board[app.origin_coords.y_coord][app.origin_coords.x_coord].legal_moves,
-			coords) {
+			coords) || app.game_board[coords.y_coord][coords.x_coord].shape == .king {
 			app.selection_state = .origin_coords
 			return
 		}
 		app.destination_coords = coords
 		move_piece(mut app.game_board, mut app.game_board[app.origin_coords.y_coord][app.origin_coords.x_coord],
 			app.game_board[app.destination_coords.y_coord][app.destination_coords.x_coord])
-		set_legal_moves_wrapper(mut app.game_board)
+		app.set_legal_moves_wrapper(mut app.game_board)
 		app.current_player = opposite_color(app.current_player)
 		app.selection_state = .origin_coords
 	}
+	dump(app.winner)
+	dump(app.who_in_check)
 }
 
 fn click(x f32, y f32, button gg.MouseButton, mut app App) {
@@ -360,7 +364,7 @@ fn cant_capture_king(game_board [][]Piece, piece Piece, absolute_destination_coo
 	return true
 }
 
-fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
+fn (mut app App) set_legal_moves(mut game_board [][]Piece, mut piece Piece) {
 	// mut local_piece := piece
 	relative_coords_map := {
 		'black_rook':   [
@@ -369,7 +373,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: 0
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -377,7 +381,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: 0
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -385,7 +389,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 0
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -393,7 +397,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 0
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 		]
@@ -403,7 +407,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: 0
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -411,7 +415,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: 0
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -419,7 +423,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 0
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -427,7 +431,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 0
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 		]
@@ -437,7 +441,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 2
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -445,7 +449,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 2
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -453,7 +457,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -2
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -461,7 +465,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -2
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -469,7 +473,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: 2
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -477,7 +481,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: 2
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -485,7 +489,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: -2
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -493,7 +497,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: -2
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 		]
@@ -503,7 +507,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 2
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -511,7 +515,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 2
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -519,7 +523,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -2
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -527,7 +531,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -2
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -535,7 +539,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: 2
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -543,7 +547,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: 2
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -551,7 +555,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: -2
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -559,7 +563,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: -2
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 		]
@@ -569,7 +573,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -577,7 +581,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -585,7 +589,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -593,7 +597,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 		]
@@ -603,7 +607,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -611,7 +615,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -619,7 +623,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -627,7 +631,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 		]
@@ -637,7 +641,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -645,7 +649,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -653,7 +657,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -661,7 +665,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -669,7 +673,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: 0
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -677,7 +681,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: 0
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -685,7 +689,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 0
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -693,7 +697,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 0
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 		]
@@ -703,7 +707,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -711,7 +715,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -719,7 +723,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -727,7 +731,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -735,7 +739,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: 0
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -743,7 +747,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: 0
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -751,7 +755,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 0
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 			RelativeCoords{
@@ -759,7 +763,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 0
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [last_legal_was_capture]
 			},
 		]
@@ -769,7 +773,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -777,7 +781,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -785,7 +789,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -793,7 +797,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -801,7 +805,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: 0
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -809,7 +813,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: 0
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -817,7 +821,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 0
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -825,7 +829,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 0
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 		]
@@ -835,7 +839,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -843,7 +847,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -851,7 +855,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -859,7 +863,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -867,7 +871,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: 0
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -875,7 +879,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: 0
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -883,7 +887,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 0
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -891,7 +895,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 0
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color]
+				conditions: [destination_no_same_color]
 				break_conditions: [only_one]
 			},
 		]
@@ -901,7 +905,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 2
 					x_coord: 0
 				}
-				conditions: [cant_capture_king, destination_no_same_color, origin_index_1_row,
+				conditions: [destination_no_same_color, origin_index_1_row,
 					destination_no_capture]
 				break_conditions: [only_one]
 			},
@@ -910,7 +914,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: 0
 				}
-				conditions: [cant_capture_king, destination_no_same_color, destination_no_capture]
+				conditions: [destination_no_same_color, destination_no_capture]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -918,7 +922,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color, destination_capture]
+				conditions: [destination_no_same_color, destination_capture]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -926,7 +930,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: 1
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color, destination_capture]
+				conditions: [destination_no_same_color, destination_capture]
 				break_conditions: [only_one]
 			},
 		]
@@ -936,7 +940,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -2
 					x_coord: 0
 				}
-				conditions: [cant_capture_king, destination_no_same_color, origin_index_6_row,
+				conditions: [destination_no_same_color, origin_index_6_row,
 					destination_no_capture]
 				break_conditions: [only_one]
 			},
@@ -945,7 +949,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: 0
 				}
-				conditions: [cant_capture_king, destination_no_same_color, destination_no_capture]
+				conditions: [destination_no_same_color, destination_no_capture]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -953,7 +957,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: -1
 				}
-				conditions: [cant_capture_king, destination_no_same_color, destination_capture]
+				conditions: [destination_no_same_color, destination_capture]
 				break_conditions: [only_one]
 			},
 			RelativeCoords{
@@ -961,7 +965,7 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 					y_coord: -1
 					x_coord: 1
 				}
-				conditions: [cant_capture_king, destination_no_same_color, destination_capture]
+				conditions: [destination_no_same_color, destination_capture]
 				break_conditions: [only_one]
 			},
 		]
@@ -969,12 +973,19 @@ fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 	piece.legal_moves = [] // clear the legal moves first before generating new ones
 
 	for relative_coords in relative_coords_map[piece.map_key] {
-		mut absolute_destination_coords_repeat := piece.coords + relative_coords.relative_coords
-		for ; within_board(absolute_destination_coords_repeat)
-			&& all_conditions_met(game_board, piece, absolute_destination_coords_repeat, relative_coords.conditions); absolute_destination_coords_repeat =
-			absolute_destination_coords_repeat + relative_coords.relative_coords {
-			piece.legal_moves << absolute_destination_coords_repeat
-			if any_condition_met(game_board, piece, absolute_destination_coords_repeat,
+		mut absolute_destination_coords := piece.coords + relative_coords.relative_coords
+		for ; within_board(absolute_destination_coords)
+			&& all_conditions_met(game_board, piece, absolute_destination_coords, relative_coords.conditions); absolute_destination_coords =
+			absolute_destination_coords + relative_coords.relative_coords {
+			piece.legal_moves << absolute_destination_coords
+				if game_board[absolute_destination_coords.y_coord][absolute_destination_coords.x_coord].shape == .king {
+					app.who_in_check = game_board[absolute_destination_coords.y_coord][absolute_destination_coords.x_coord].color
+					app.set_legal_moves(mut game_board, mut game_board[absolute_destination_coords.y_coord][absolute_destination_coords.x_coord])
+					if game_board[absolute_destination_coords.y_coord][absolute_destination_coords.x_coord].legal_moves.len == 0 {
+						app.winner = piece.color
+					}
+				}
+			if any_condition_met(game_board, piece, absolute_destination_coords,
 				relative_coords.break_conditions)
 			{
 				break
@@ -992,11 +1003,11 @@ fn any_condition_met(game_board [][]Piece, piece Piece, absolute_destination_coo
 	return false
 }
 
-fn set_legal_moves_wrapper(mut game_board [][]Piece) {
+fn (mut app App) set_legal_moves_wrapper(mut game_board [][]Piece) {
 	for y_coord, mut row in game_board {
 		for x_coord, mut piece in row {
 			if piece.shape != .empty_square {
-				set_legal_moves(game_board, mut piece)
+				app.set_legal_moves(mut game_board, mut piece)
 			}
 		}
 	}
@@ -1020,7 +1031,7 @@ fn (mut app App) new_game() {
 	set_empty_pieces(mut app.game_board)
 	set_pieces_new_game(mut app.game_board)
 	set_map_keys(mut app.game_board)
-	set_legal_moves_wrapper(mut app.game_board)
+	app.set_legal_moves_wrapper(mut app.game_board)
 }
 
 struct App {
@@ -1033,6 +1044,8 @@ mut:
 	origin_coords          Coords
 	destination_coords     Coords
 	legal_moves_game_board [][]Piece
+	who_in_check Color
+	winner Color
 }
 
 fn main() {
