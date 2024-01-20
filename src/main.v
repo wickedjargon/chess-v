@@ -184,6 +184,7 @@ struct RelativeCoords {
 mut:
 	relative_coords     Coords
 	conditions []fn ([][]Piece, Piece, Coords) bool
+	break_conditions []fn ([][]Piece, Piece, Coords) bool
 	modifiers []string
 }
 
@@ -282,12 +283,12 @@ fn set_empty_pieces(mut game_board [][]Piece) {
 
 
 
-fn origin_sixth_row(game_board [][]Piece, piece Piece, absolute_destination_coords Coords) bool {
+fn origin_index_6_row(game_board [][]Piece, piece Piece, absolute_destination_coords Coords) bool {
 	return piece.coords.y_coord == 6
 }
 
 
-fn origin_first_row(game_board [][]Piece, piece Piece, absolute_destination_coords Coords) bool {
+fn origin_index_1_row(game_board [][]Piece, piece Piece, absolute_destination_coords Coords) bool {
 	return piece.coords.y_coord == 1
 }
 
@@ -312,56 +313,154 @@ fn destination_capture(game_board [][]Piece, piece Piece, absolute_destination_c
 	return game_board[absolute_destination_coords.y_coord][absolute_destination_coords.x_coord].color == opposite_color(piece.color)
 }
 
-fn set_legal_moves_inner(relative_coords_database map[string][]RelativeCoords, mut piece Piece, relative_coords_key string) {
+fn destination_no_same_color(game_board [][]Piece, piece Piece, absolute_destination_coords Coords) bool {
+	return game_board[absolute_destination_coords.y_coord][absolute_destination_coords.x_coord].color != piece.color
+}
+
+
+fn only_one (game_board [][]Piece, piece Piece, absolute_destination_coords Coords) bool {
+	return true
+}
+
+fn last_legal_was_capture (game_board [][]Piece, piece Piece, absolute_destination_coords Coords) bool {
+	if piece.legal_moves.len == 0 {
+		return false
+	}
+	last_legal_coords := piece.legal_moves[piece.legal_moves.len - 1]
+	if game_board[last_legal_coords.y_coord][last_legal_coords.x_coord].color == .white || game_board[last_legal_coords.y_coord][last_legal_coords.x_coord].color == .black {
+		return true
+	}
+	return false
 }
 
 fn set_legal_moves(game_board [][]Piece, mut piece Piece) {
 	// mut local_piece := piece
 	relative_coords_database :=
 		{
-			'black_rook': []RelativeCoords{}
-			'black_knight': []RelativeCoords{}
-			'black_bishop': []RelativeCoords{}
-			'black_queen': []RelativeCoords{}
-			'black_king': []RelativeCoords{}
-			'white_rook': []RelativeCoords{}
-			'white_knight': []RelativeCoords{}
-			'white_bishop': []RelativeCoords{}
-			'white_queen': []RelativeCoords{}
-			'white_king': []RelativeCoords{}
-			'white_pawn':
+			'black_rook':
 			[
-				RelativeCoords{relative_coords: Coords{y_coord: -2, x_coord: 0}, conditions: [origin_sixth_row, destination_no_capture], modifiers: ['no-repeat']},
-				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 0}, conditions: [destination_no_capture], modifiers: ['no-repeat']},
-				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: -1}, conditions: [destination_capture], modifiers: ['no-repeat']},
-				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 1}, conditions: [destination_capture], modifiers: ['no-repeat']},
+				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: 0}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 0}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: 0, x_coord: 1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: 0, x_coord: -1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+			],
+			'white_rook':
+			[
+				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: 0}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 0}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: 0, x_coord: 1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: 0, x_coord: -1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+			],
+			'black_knight':
+			[
+				RelativeCoords{relative_coords: Coords{y_coord: 2, x_coord: -1}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: 2, x_coord: 1}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: -2, x_coord: -1}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: -2, x_coord: 1}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+			],
+			'white_knight':
+			[
+				RelativeCoords{relative_coords: Coords{y_coord: 2, x_coord: -1}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: 2, x_coord: 1}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: -2, x_coord: -1}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: -2, x_coord: 1}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+
+			],
+			'black_bishop':
+			[
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: -1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: 1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: -1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+			],
+			'white_bishop':
+			[
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: -1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: 1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: -1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+			],
+			'black_queen':
+			[
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: -1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: 1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: -1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: 0}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 0}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: 0, x_coord: 1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: 0, x_coord: -1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+			],
+			'white_queen': [
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: -1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: 1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: -1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: 0}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 0}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: 0, x_coord: 1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+				RelativeCoords{relative_coords: Coords{y_coord: 0, x_coord: -1}, conditions: [destination_no_same_color], break_conditions:[last_legal_was_capture]},
+			],
+			'black_king':
+			[
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: -1}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: 1}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 1}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: -1}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: 0}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 0}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: 0, x_coord: 1}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: 0, x_coord: -1}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+			],
+			'white_king':
+			[
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: -1}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: 1}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 1}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: -1}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: 0}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 0}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: 0, x_coord: 1}, conditions: [destination_no_same_color], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: 0, x_coord: -1}, conditions: [destination_no_same_color], break_conditions:[only_one]},
 			],
 			'black_pawn':
 			[
-				RelativeCoords{relative_coords: Coords{y_coord: 2, x_coord: 0}, conditions: [origin_first_row, destination_no_capture], modifiers: ['no-repeat']},
-				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: 0}, conditions: [destination_no_capture], modifiers: ['no-repeat']},
-				// RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: -1}, conditions: [destination_capture], modifiers: ['no-repeat']},
-				// RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 1}, conditions: [destination_capture], modifiers: ['no-repeat']},
-			]
+				RelativeCoords{relative_coords: Coords{y_coord: 2, x_coord: 0}, conditions: [destination_no_same_color, origin_index_1_row, destination_no_capture], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: 0}, conditions: [destination_no_same_color, destination_no_capture], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: 1}, conditions: [destination_no_same_color, destination_capture], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: 1, x_coord: -1}, conditions: [destination_no_same_color, destination_capture], break_conditions:[only_one]},
+			],
+			'white_pawn':
+			[
+				RelativeCoords{relative_coords: Coords{y_coord: -2, x_coord: 0}, conditions: [destination_no_same_color, origin_index_6_row, destination_no_capture], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 0}, conditions: [destination_no_same_color, destination_no_capture], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: -1}, conditions: [destination_no_same_color, destination_capture], break_conditions:[only_one]},
+				RelativeCoords{relative_coords: Coords{y_coord: -1, x_coord: 1}, conditions: [destination_no_same_color, destination_capture], break_conditions:[only_one]},
+			],
 		}
 	piece.legal_moves = [] // clear the legal moves first before generating new ones
 
 	for relative_coords in relative_coords_database[piece.map_key] {
-		if 'no-repeat' in relative_coords.modifiers {
-			absolute_destination_coords_no_repeat := piece.coords + relative_coords.relative_coords
-			if within_board(absolute_destination_coords_no_repeat) && all_conditions_met(game_board, piece, absolute_destination_coords_no_repeat, relative_coords.conditions) {
-				piece.legal_moves << absolute_destination_coords_no_repeat
-			}
-		}
-		else if 'repeat' in relative_coords.modifiers {
 			mut absolute_destination_coords_repeat := piece.coords + relative_coords.relative_coords
 			for ; within_board(absolute_destination_coords_repeat) && all_conditions_met(game_board, piece, absolute_destination_coords_repeat, relative_coords.conditions); absolute_destination_coords_repeat = absolute_destination_coords_repeat + relative_coords.relative_coords {
 				piece.legal_moves << absolute_destination_coords_repeat
+				if any_condition_met(game_board, piece, absolute_destination_coords_repeat, relative_coords.break_conditions) {
+					break
+				}
 			}
+	}
+}
+
+
+fn any_condition_met(game_board [][]Piece, piece Piece, absolute_destination_coords Coords, conditions []fn ([][]Piece, Piece, Coords) bool) bool {
+	for condition in conditions {
+		if condition(game_board, piece, absolute_destination_coords) == true {
+			return true
 		}
 	}
-
+	return false
 }
+
 
 fn set_legal_moves_wrapper(mut game_board [][]Piece) {
 	for y_coord, mut row in game_board {
