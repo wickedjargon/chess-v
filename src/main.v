@@ -10,7 +10,7 @@ fn (mut app App) init_images_wrapper() {
 
 fn (mut app App) init_images_pieces(shapes []string, color string) ! {
 	for shape in shapes {
-		app.image_database['${color}_${shape}'] = app.gg.create_image(os.resource_abs_path('../assets/${color}_${shape}.png'))!
+		app.image_database['${color}_${shape}'] = app.gg.create_image(os.resource_abs_path('./assets/${color}_${shape}.png'))!
 	}
 }
 
@@ -18,8 +18,8 @@ fn (mut app App) init_images() ! {
 	shapes := ['rook', 'knight', 'bishop', 'queen', 'king', 'pawn']
 	app.init_images_pieces(shapes, 'black')!
 	app.init_images_pieces(shapes, 'white')!
-	app.image_database['game_board_image'] = app.gg.create_image(os.resource_abs_path('../assets/game_board_image.png'))!
-	app.image_database['circle'] = app.gg.create_image(os.resource_abs_path('../assets/circle.png'))!
+	app.image_database['game_board_image'] = app.gg.create_image(os.resource_abs_path('./assets/game_board_image.png'))!
+	app.image_database['circle'] = app.gg.create_image(os.resource_abs_path('./assets/circle.png'))!
 }
 
 fn (app App) draw_legal_moves() {
@@ -143,8 +143,6 @@ fn (mut app App) handle_coords(coords Coords) {
 		app.current_player = opposite_color(app.current_player)
 		app.selection_state = .origin_coords
 	}
-	dump(app.winner)
-	dump(app.who_in_check)
 }
 
 fn click(x f32, y f32, button gg.MouseButton, mut app App) {
