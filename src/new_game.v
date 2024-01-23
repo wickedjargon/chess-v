@@ -90,5 +90,4 @@ fn (mut app App) new_game() {
 	set_empty_pieces(mut app.game_board)
 	set_pieces_new_game(mut app.game_board)
 	set_map_keys(mut app.game_board)
-	app.set_legal_moves_wrapper(mut app.game_board)
 }

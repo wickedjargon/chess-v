@@ -15,7 +15,7 @@ enum Color {
 }
 
 struct RelativeCoords {
-mut:
+	mut:
 	relative_coords  Coords
 	conditions       []fn ([][]Piece, Piece, Coords) bool
 	break_conditions []fn ([][]Piece, Piece, Coords) bool
@@ -23,7 +23,7 @@ mut:
 }
 
 struct Coords {
-mut:
+	mut:
 	y_coord int
 	x_coord int
 }
@@ -50,7 +50,7 @@ enum Shape {
 
 struct Piece {
 	color Color
-mut:
+	mut:
 	shape       Shape
 	coords      Coords
 	legal_moves []Coords
@@ -97,22 +97,23 @@ fn (mut app App) set_legal_moves_game_board(legal_moves []Coords) {
 fn (mut app App) handle_coords(coords Coords) {
 	if app.selection_state == .origin_coords
 		&& app.game_board[coords.y_coord][coords.x_coord].color == app.current_player {
-		app.origin_coords = coords
-		app.selection_state = .destination_coords
-		app.set_legal_moves_game_board(app.game_board[app.origin_coords.y_coord][app.origin_coords.x_coord].legal_moves)
-	} else if app.selection_state == .destination_coords {
-		if !coords_in_legal_moves(app.game_board[app.origin_coords.y_coord][app.origin_coords.x_coord].legal_moves,
-			coords) || app.game_board[coords.y_coord][coords.x_coord].shape == .king {
+			app.origin_coords = coords
+			app.selection_state = .destination_coords
+			app.set_legal_moves(mut app.game_board, mut app.game_board[app.origin_coords.y_coord][app.origin_coords.x_coord])
+			app.set_legal_moves_game_board(app.game_board[app.origin_coords.y_coord][app.origin_coords.x_coord].legal_moves)
+		} else if app.selection_state == .destination_coords {
+			if !coords_in_legal_moves(app.game_board[app.origin_coords.y_coord][app.origin_coords.x_coord].legal_moves,
+									  coords) || app.game_board[coords.y_coord][coords.x_coord].shape == .king {
+										  app.selection_state = .origin_coords
+										  return
+									  }
+			app.destination_coords = coords
+			move_piece(mut app.game_board, mut app.game_board[app.origin_coords.y_coord][app.origin_coords.x_coord],
+					   app.game_board[app.destination_coords.y_coord][app.destination_coords.x_coord])
+			// app.set_legal_moves_wrapper(mut app.game_board)
+			app.current_player = opposite_color(app.current_player)
 			app.selection_state = .origin_coords
-			return
 		}
-		app.destination_coords = coords
-		move_piece(mut app.game_board, mut app.game_board[app.origin_coords.y_coord][app.origin_coords.x_coord],
-			app.game_board[app.destination_coords.y_coord][app.destination_coords.x_coord])
-		app.set_legal_moves_wrapper(mut app.game_board)
-		app.current_player = opposite_color(app.current_player)
-		app.selection_state = .origin_coords
-	}
 }
 
 fn (mut app App) set_legal_moves(mut game_board [][]Piece, mut piece Piece) {
@@ -124,35 +125,18 @@ fn (mut app App) set_legal_moves(mut game_board [][]Piece, mut piece Piece) {
 		for ; within_board(absolute_destination_coords)
 			&& all_conditions_met(game_board, piece, absolute_destination_coords, relative_coords.conditions); absolute_destination_coords =
 			absolute_destination_coords + relative_coords.relative_coords {
-			piece.legal_moves << absolute_destination_coords
-				if game_board[absolute_destination_coords.y_coord][absolute_destination_coords.x_coord].shape == .king {
-					app.who_in_check = game_board[absolute_destination_coords.y_coord][absolute_destination_coords.x_coord].color
-					app.set_legal_moves(mut game_board, mut game_board[absolute_destination_coords.y_coord][absolute_destination_coords.x_coord])
-					if game_board[absolute_destination_coords.y_coord][absolute_destination_coords.x_coord].legal_moves.len == 0 {
-						app.winner = piece.color
-					}
+				piece.legal_moves << absolute_destination_coords
+				if any_condition_met(game_board, piece, absolute_destination_coords,
+									 relative_coords.break_conditions)
+				{
+					break
 				}
-			if any_condition_met(game_board, piece, absolute_destination_coords,
-				relative_coords.break_conditions)
-			{
-				break
 			}
-		}
-	}
-}
-
-fn (mut app App) set_legal_moves_wrapper(mut game_board [][]Piece) {
-	for y_coord, mut row in game_board {
-		for x_coord, mut piece in row {
-			if piece.shape != .empty_square {
-				app.set_legal_moves(mut game_board, mut piece)
-			}
-		}
 	}
 }
 
 struct App {
-mut:
+	mut:
 	gg                     &gg.Context = unsafe { nil }
 	image_database         map[string]gg.Image
 	game_board             [][]Piece
