@@ -23,8 +23,8 @@ fn (mut app App) init_images() ! {
 
 fn (app App) draw_legal_moves() {
 	for y_coord, rows in app.legal_moves_game_board {
-		for x_coord, piece in rows {
-			if piece.shape == .legal_move && app.game_board[y_coord][x_coord].shape != .king {
+		for x_coord, cell in rows {
+			if cell == true && app.game_board[y_coord][x_coord].shape != .king {
 				piece_image := app.image_database['circle'] or { panic('line 40') }
 				app.draw_piece_at_coordinate(piece_image, x_coord, y_coord)
 			}

@@ -83,10 +83,8 @@ fn set_map_keys(mut game_board [][]Piece) {
 fn (mut app App) new_game() {
 	app.selection_state = .origin_coords
 	app.current_player = .white
-	app.game_board = [][]Piece{len: 8, cap: 8, init: []Piece{len: 8, cap: 8, init: Piece{}}}
-	app.legal_moves_game_board = [][]Piece{len: 8, cap: 8, init: []Piece{len: 8, cap: 8, init: Piece{
-		shape: .illegal_move
-	}}}
+	app.game_board = empty_game_board.clone()
+	app.legal_moves_game_board = empty_legal_moves_game_board.clone()
 	set_empty_pieces(mut app.game_board)
 	set_pieces_new_game(mut app.game_board)
 	set_map_keys(mut app.game_board)

@@ -37,8 +37,6 @@ fn (a Coords) + (b Coords) Coords {
 
 enum Shape {
 	not_set      = -4
-	illegal_move = -3
-	legal_move   = -2
 	empty_square = -1
 	rook         = 0
 	knight       = 1
@@ -81,16 +79,12 @@ fn coords_in_legal_moves(legal_moves []Coords, coords Coords) bool {
 
 fn (mut app App) set_legal_moves_game_board(legal_moves []Coords) {
 	for y_coord, mut row in app.legal_moves_game_board {
-		for x_coord, mut piece in row {
-			piece.shape = .illegal_move
+		for x_coord, mut cell in row {
+			cell = false
 		}
 	}
 	for legal_move in legal_moves {
-		app.legal_moves_game_board[legal_move.y_coord][legal_move.x_coord].shape = .legal_move
-		app.legal_moves_game_board[legal_move.y_coord][legal_move.x_coord].coords = Coords{
-			y_coord: legal_move.y_coord
-			x_coord: legal_move.x_coord
-		}
+		app.legal_moves_game_board[legal_move.y_coord][legal_move.x_coord] = true
 	}
 }
 
@@ -110,10 +104,28 @@ fn (mut app App) handle_coords(coords Coords) {
 			app.destination_coords = coords
 			move_piece(mut app.game_board, mut app.game_board[app.origin_coords.y_coord][app.origin_coords.x_coord],
 					   app.game_board[app.destination_coords.y_coord][app.destination_coords.x_coord])
-			// app.set_legal_moves_wrapper(mut app.game_board)
 			app.current_player = opposite_color(app.current_player)
 			app.selection_state = .origin_coords
 		}
+}
+
+fn (mut app App) get_legal_moves(mut game_board [][]Piece, mut piece Piece) []Coords {
+	mut legal_moves := []Coords{}
+
+	for relative_coords in relative_coords_map[piece.map_key] {
+		mut absolute_destination_coords := piece.coords + relative_coords.relative_coords
+		for ; within_board(absolute_destination_coords)
+			&& all_conditions_met(game_board, piece, absolute_destination_coords, relative_coords.conditions); absolute_destination_coords =
+			absolute_destination_coords + relative_coords.relative_coords {
+				legal_moves << absolute_destination_coords
+				if any_condition_met(game_board, piece, absolute_destination_coords,
+									 relative_coords.break_conditions)
+				{
+					break
+				}
+			}
+	}
+	return legal_moves
 }
 
 fn (mut app App) set_legal_moves(mut game_board [][]Piece, mut piece Piece) {
@@ -144,7 +156,7 @@ struct App {
 	current_player         Color
 	origin_coords          Coords
 	destination_coords     Coords
-	legal_moves_game_board [][]Piece
+	legal_moves_game_board [][]bool
 	who_in_check Color
 	winner Color
 }

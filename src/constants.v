@@ -2,6 +2,7 @@ module main
 
 const game_board_dimension = 8
 const empty_game_board = [][]Piece{len: game_board_dimension, cap: game_board_dimension, init: []Piece{len: game_board_dimension, cap: game_board_dimension, init: Piece{}}}
+const empty_legal_moves_game_board = [][]bool{len: 8, cap: 8, init: []bool{len: 8, cap: 8, init: false}}
 
 const relative_coords_map := {
 	'black_rook':   [
