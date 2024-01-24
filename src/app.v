@@ -77,14 +77,14 @@ fn coords_in_legal_moves(legal_moves []Coords, coords Coords) bool {
 	return ret
 }
 
-fn (mut app App) set_legal_moves_game_board(legal_moves []Coords) {
-	for y_coord, mut row in app.legal_moves_game_board {
+fn set_legal_moves_game_board(mut legal_moves_game_board [][]bool, legal_moves []Coords) {
+	for y_coord, mut row in legal_moves_game_board {
 		for x_coord, mut cell in row {
 			cell = false
 		}
 	}
 	for legal_move in legal_moves {
-		app.legal_moves_game_board[legal_move.y_coord][legal_move.x_coord] = true
+		legal_moves_game_board[legal_move.y_coord][legal_move.x_coord] = true
 	}
 }
 
@@ -93,8 +93,8 @@ fn (mut app App) handle_coords(coords Coords) {
 		&& app.game_board[coords.y_coord][coords.x_coord].color == app.current_player {
 			app.origin_coords = coords
 			app.selection_state = .destination_coords
-			app.set_legal_moves(mut app.game_board, mut app.game_board[app.origin_coords.y_coord][app.origin_coords.x_coord])
-			app.set_legal_moves_game_board(app.game_board[app.origin_coords.y_coord][app.origin_coords.x_coord].legal_moves)
+			set_legal_moves(mut app.game_board, mut app.game_board[app.origin_coords.y_coord][app.origin_coords.x_coord])
+			set_legal_moves_game_board( mut app.legal_moves_game_board, app.game_board[app.origin_coords.y_coord][app.origin_coords.x_coord].legal_moves)
 		} else if app.selection_state == .destination_coords {
 			if !coords_in_legal_moves(app.game_board[app.origin_coords.y_coord][app.origin_coords.x_coord].legal_moves,
 									  coords) || app.game_board[coords.y_coord][coords.x_coord].shape == .king {
@@ -128,7 +128,7 @@ fn (mut app App) get_legal_moves(mut game_board [][]Piece, mut piece Piece) []Co
 	return legal_moves
 }
 
-fn (mut app App) set_legal_moves(mut game_board [][]Piece, mut piece Piece) {
+fn set_legal_moves(mut game_board [][]Piece, mut piece Piece) {
 	// mut local_piece := piece
 	piece.legal_moves = [] // clear the legal moves first before generating new ones
 
