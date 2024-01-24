@@ -3,7 +3,6 @@ module main
 import gg
 
 enum SelectionState {
-	not_set            = -1
 	origin_coords
 	destination_coords
 }
@@ -109,7 +108,7 @@ fn (mut app App) handle_coords(coords Coords) {
 		}
 }
 
-fn (mut app App) get_legal_moves(mut game_board [][]Piece, mut piece Piece) []Coords {
+fn get_legal_moves(mut game_board [][]Piece, mut piece Piece) []Coords {
 	mut legal_moves := []Coords{}
 
 	for relative_coords in relative_coords_map[piece.map_key] {
